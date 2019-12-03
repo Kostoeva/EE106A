@@ -30,6 +30,7 @@ import android.widget.Toast;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Pose;
 import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
@@ -46,6 +47,10 @@ public class HelloSceneformActivity extends AppCompatActivity {
   private ModelRenderable andyRenderable;
 
   private TextView debugText;
+
+  private float x;
+  private float y;
+  private float z;
 
   @Override
   @SuppressWarnings({"AndroidApiChecker", "FutureReturnValueIgnored"})
@@ -93,6 +98,12 @@ public class HelloSceneformActivity extends AppCompatActivity {
 
           System.out.println("-------------------------");
           System.out.println(hitResult.getHitPose().toString());
+
+          Pose pose = hitResult.getHitPose();
+          x = pose.tx();
+          y = pose.ty();
+          z = pose.tz();
+          
           debugText.setText(hitResult.getHitPose().toString());
 
           AnchorNode anchorNode = new AnchorNode(anchor);
