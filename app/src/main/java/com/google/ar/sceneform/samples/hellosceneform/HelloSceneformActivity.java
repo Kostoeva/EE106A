@@ -25,6 +25,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.HitResult;
@@ -44,6 +45,8 @@ public class HelloSceneformActivity extends AppCompatActivity {
   private ArFragment arFragment;
   private ModelRenderable andyRenderable;
 
+  private TextView debugText;
+
   @Override
   @SuppressWarnings({"AndroidApiChecker", "FutureReturnValueIgnored"})
   // CompletableFuture requires api level 24
@@ -56,6 +59,10 @@ public class HelloSceneformActivity extends AppCompatActivity {
     }
 
     setContentView(R.layout.activity_ux);
+
+    // DebugText: hit pose.
+    debugText = findViewById(R.id.debugText);
+
     arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
     // When you build a Renderable, Sceneform loads its resources in the background while returning
@@ -79,8 +86,15 @@ public class HelloSceneformActivity extends AppCompatActivity {
             return;
           }
 
+          debugText.setText("test");
+
           // Create the Anchor.
           Anchor anchor = hitResult.createAnchor();
+
+          System.out.println("-------------------------");
+          System.out.println(hitResult.getHitPose().toString());
+          debugText.setText(hitResult.getHitPose().toString());
+
           AnchorNode anchorNode = new AnchorNode(anchor);
           anchorNode.setParent(arFragment.getArSceneView().getScene());
 
