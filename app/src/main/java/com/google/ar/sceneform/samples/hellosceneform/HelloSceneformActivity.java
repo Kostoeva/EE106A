@@ -25,6 +25,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.ar.core.Anchor;
@@ -35,6 +37,8 @@ import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
+
+import java.util.ArrayList;
 
 /**
  * This is an example activity that uses the Sceneform UX package to make common AR tasks easier.
@@ -52,6 +56,15 @@ public class HelloSceneformActivity extends AppCompatActivity {
   private float y;
   private float z;
 
+  // List of waypoints: waypoint = [x, z]
+  private ArrayList<float[]> waypoints = new ArrayList<>();
+
+  // Clear button
+  private Button clearButton;
+
+  // Finish button
+  private Button finishButton;
+
   @Override
   @SuppressWarnings({"AndroidApiChecker", "FutureReturnValueIgnored"})
   // CompletableFuture requires api level 24
@@ -64,6 +77,29 @@ public class HelloSceneformActivity extends AppCompatActivity {
     }
 
     setContentView(R.layout.activity_ux);
+
+    // Set clear button.
+    clearButton = findViewById(R.id.clearButton);
+      clearButton.setOnClickListener(new View.OnClickListener() {
+          @Override
+          public void onClick(View view)
+          {
+              waypoints = new ArrayList<>();
+              debugText.setText("Cleared waypoints");
+              System.out.println("clearing waypoints -----------------------------------");
+          }
+      });
+
+      // Set finish button.
+    finishButton = findViewById(R.id.finishButton);
+      finishButton.setOnClickListener(new View.OnClickListener() {
+          @Override
+          public void onClick(View view)
+          {
+              debugText.setText("Finished: waypoints sent to client");
+              System.out.println("finished -----------------------------------");
+          }
+      });
 
     // DebugText: hit pose.
     debugText = findViewById(R.id.debugText);
@@ -91,8 +127,6 @@ public class HelloSceneformActivity extends AppCompatActivity {
             return;
           }
 
-          debugText.setText("test");
-
           // Create the Anchor.
           Anchor anchor = hitResult.createAnchor();
 
@@ -103,7 +137,13 @@ public class HelloSceneformActivity extends AppCompatActivity {
           x = pose.tx();
           y = pose.ty();
           z = pose.tz();
-          
+
+          // Add current waypoint to list of waypoints.
+          float[] current_waypoint = new float[2];
+          current_waypoint[0] = x;
+          current_waypoint[1] = z;
+          waypoints.add(current_waypoint);
+
           debugText.setText(hitResult.getHitPose().toString());
 
           AnchorNode anchorNode = new AnchorNode(anchor);
@@ -145,4 +185,5 @@ public class HelloSceneformActivity extends AppCompatActivity {
     }
     return true;
   }
+
 }

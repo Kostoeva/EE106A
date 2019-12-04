@@ -32,4 +32,30 @@
       android:inputType="textPersonName"
       android:text="Debug" />
 
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:layout_weight="1"
+      android:gravity="center|bottom"
+      android:orientation="vertical">
+
+    <Button
+        android:id="@+id/clearButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:background="#EEFF0000"
+        android:layout_margin="10dp"
+        android:text="CLEAR" />
+
+    <Button
+        android:id="@+id/finishButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_margin="10dp"
+        android:background="#04FF0D"
+        android:text="FINISH" />
+  </LinearLayout>
+
 </FrameLayout>
