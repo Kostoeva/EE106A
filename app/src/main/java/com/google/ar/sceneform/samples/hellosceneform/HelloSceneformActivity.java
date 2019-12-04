@@ -38,6 +38,8 @@ import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 
 /**
@@ -97,6 +99,7 @@ public class HelloSceneformActivity extends AppCompatActivity {
           public void onClick(View view)
           {
               debugText.setText("Finished: waypoints sent to client");
+              writeFileOnInternalStorage(getApplicationContext(), "ee106a-waypoints", waypoints);
               System.out.println("finished -----------------------------------");
           }
       });
@@ -184,6 +187,27 @@ public class HelloSceneformActivity extends AppCompatActivity {
       return false;
     }
     return true;
+  }
+
+  // Write waypoint arraylist to internal storage.
+  public void writeFileOnInternalStorage(Context mcoContext, String sFileName, ArrayList<float[]> sBody){
+      File file = new File(mcoContext.getFilesDir(),"ee106a");
+      if(!file.exists()){
+           file.mkdir();
+      }
+
+      try{
+          File gpxfile = new File(file, sFileName);
+          FileWriter writer = new FileWriter(gpxfile);
+          for (int i = 0; i < waypoints.size(); i++) {
+              writer.append(Float.toString(waypoints.get(i)[0]) + ',' + Float.toString(waypoints.get(i)[1]));
+              writer.append('\n');
+          }
+          writer.flush();
+          writer.close();
+      }catch (Exception e){
+          e.printStackTrace();
+      }
   }
 
 }

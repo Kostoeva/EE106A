@@ -19,8 +19,10 @@
     <!-- "AR Required" apps must declare minSdkVersion ≥ 24.
          "AR Optional" apps must declare minSdkVersion ≥ 14 -->
     <!-- Always needed for AR. -->
-
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Write/Read to internal storage on phone -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- Sceneform requires OpenGLES 3.0 or later. -->
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <!-- Indicates that this app requires Google Play Services for AR ("AR Required") and results in
