@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 # On work station:
 # python navigation_waypoints.py
 import rospy
+import sys
 from geometry_msgs.msg import Twist
 
 class NavigationWaypoints():
@@ -49,6 +50,25 @@ class NavigationWaypoints():
             self.cmd_vel.publish(move_cmd)
         # wait for 0.1 seconds (10 HZ) and publish again
             r.sleep()
+     #current speed from turtlebot
+    #
+    def read_input(self):
+        filename = sys.argv[1]
+        with open(filename) as f:
+            content = f.readlines()
+            print(content)
+            result = []
+            arr_x, arr_y = [], []
+            for line in content:    
+                temp = line.split(',')
+                result.extend(temp)
+            arr_x = result[::2]
+            arr_y = result[1::2]
+            print(result)
+            print('\n')
+            print(arr_x)
+            print('\n')
+            print(arr_y)     
                         
         
     def shutdown(self):
@@ -61,6 +81,7 @@ class NavigationWaypoints():
  
 if __name__ == '__main__':
     try:
-        NavigationWaypoints()
+        #NavigationWaypoints()
+        read_input()
     except:
         rospy.loginfo("NavigationWaypoints node terminated.")
