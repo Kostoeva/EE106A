@@ -1,0 +1,29 @@
+`vim ~/.bashrc`
+
+add: export ROS_MASTER_URI=http://[TurtleID].local:11311
+
+save
+
+`source ~/.bashrc`
+
+----------------------------------------------------------------
+Turn TurtleBot on
+
+`ping [TurtleID]`
+
+`ssh turtlebot@[TurtleID].local` pwd=EE106A19
+
+`roslaunch turtlebot_bringup minimal.launch --screen`
+
+---------------------------------------------------------------
+On work station
+python navigation_waypoints.py
+
+
+
+Skeleton:
+
+waypoints (x,z) -> trajectroy ({x, z)^n)
+
+
+trajectory (static) + PutInPhoneCoords[get the turtlebot's x,z position + theta (dynamic)]  -> LQR
