@@ -21,6 +21,7 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
@@ -38,9 +39,19 @@ import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Formatter;
 
 /**
  * This is an example activity that uses the Sceneform UX package to make common AR tasks easier.
@@ -99,7 +110,7 @@ public class HelloSceneformActivity extends AppCompatActivity {
           public void onClick(View view)
           {
               debugText.setText("Finished: waypoints sent to client");
-              writeFileOnInternalStorage(getApplicationContext(), "ee106a-waypoints", waypoints);
+              writeToExternalStoragePublic("waypoints.txt", waypoints);
               System.out.println("finished -----------------------------------");
           }
       });
@@ -189,25 +200,46 @@ public class HelloSceneformActivity extends AppCompatActivity {
     return true;
   }
 
-  // Write waypoint arraylist to internal storage.
-  public void writeFileOnInternalStorage(Context mcoContext, String sFileName, ArrayList<float[]> sBody){
-      File file = new File(mcoContext.getFilesDir(),"ee106a");
-      if(!file.exists()){
-           file.mkdir();
-      }
+    public void writeToExternalStoragePublic(String filename, ArrayList<float[]> data) {
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath()+ "/Android/data/";
+            try {
+                boolean exists = (new File(path)).exists();
+                if (!exists) {
+                    new File(path).mkdirs();
+                }
+                // Open output stream
+                //Formatter fOut = new Formatter(new File(path));
+                //out.format("%f", highScore);
+                //out.close();
+                FileOutputStream fOut = new FileOutputStream(path + filename,true);
+                for (int i = 0; i < data.size(); i++) {
+                    System.out.println("Start waypoint++++++++++++++++++++++++++++++++++++++");
+                    //System.out.println(data.get(i)[0]);
+                    //fOut.write((int)data.get(i)[0]);
+                    //System.out.println((int)(data.get(i)[0] * 100));
+                    //System.out.println(Float.floatToIntBits(data.get(i)[0]));
+                    //System.out.println(Float.toString(data.get(i)[0]).getBytes());
+                    //fOut.write(Float.toString(data.get(i)[0]).getBytes());
+                    //fOut.write(Integer.valueOf(String.valueOf(data.get(i)[0])));
+                    //fOut.write(Float.toString(data.get(i)[0]).getBytes());
+                    //System.out.println(Integer.valueOf(String.valueOf(data.get(i)[0])));
+                    //System.out.println(ByteBuffer.allocate(4).putFloat(data.get(i)[0]).array().toString());
+                    //System.out.println((int)(data.get(i)[0] * 100));
+                    fOut.write(Float.toString(data.get(i)[0]).getBytes());
+                    fOut.write(",".getBytes());
+                    fOut.write(Float.toString(data.get(i)[1]).getBytes());
+                    fOut.write("\n".getBytes());
+                    System.out.println("End waypoint+++++++++++++++++++++++++++++++++++++++");
+                }
+                // Close output stream
+                fOut.flush();
+                fOut.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-      try{
-          File gpxfile = new File(file, sFileName);
-          FileWriter writer = new FileWriter(gpxfile);
-          for (int i = 0; i < waypoints.size(); i++) {
-              writer.append(Float.toString(waypoints.get(i)[0]) + ',' + Float.toString(waypoints.get(i)[1]));
-              writer.append('\n');
-          }
-          writer.flush();
-          writer.close();
-      }catch (Exception e){
-          e.printStackTrace();
-      }
-  }
+        Toast.makeText(getApplicationContext(), "File saved to Android/data!",
+                Toast.LENGTH_LONG).show();
+    }
 
 }
