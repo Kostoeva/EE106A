@@ -35,7 +35,7 @@ class Spline:
         # calc spline coefficient b and d
         for i in range(self.nx - 1):
             self.d.append((self.c[i + 1] - self.c[i]) / (3.0 * h[i]))
-            tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] *                 (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
+            tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] * (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
             self.b.append(tb)
 
     def calc(self, t):
@@ -51,7 +51,7 @@ class Spline:
 
         i = self.__search_index(t)
         dx = t - self.x[i]
-        result = self.a[i] + self.b[i] * dx +             self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
+        result = self.a[i] + self.b[i] * dx +self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
 
         return result
 
@@ -116,7 +116,7 @@ class Spline:
         """
         B = np.zeros(self.nx)
         for i in range(self.nx - 2):
-            B[i + 1] = 3.0 * (self.a[i + 2] - self.a[i + 1]) /                 h[i + 1] - 3.0 * (self.a[i + 1] - self.a[i]) / h[i]
+            B[i + 1] = 3.0 * (self.a[i + 2] - self.a[i + 1]) / h[i + 1] - 3.0 * (self.a[i + 1] - self.a[i]) / h[i]
         return B
 
 
@@ -243,14 +243,26 @@ def solve_dare(A, B, Q, R):
     x_next = Q
     max_iter = 150
     eps = 0.01
-
     for i in range(max_iter):
         #x_next = A.T @ x @ A - A.T @ x @ B @ \
         #la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
-        temp2 = la.inv(R + B.T @ x @ B)
-        temp = la.inv(R + np.matmul(B, np.matmul(B.T,x)))
-        
-        x_next = np.matmul(np.matmul(A.T,x), A) - np.matmul(A,np.matmul(x, np.matmul(B.T, np.matmul(temp, np.matmul(B, np.matmul(A.T, x)))))) + Q
+        # temp2 = la.inv(R + B.T @ x @ B)
+        # temp = la.inv(R + np.matmul(B, np.matmul(B.T,x)))
+
+
+        at_x = np.matmul(A.T, x)
+        bt_x = np.matmul(B.T, x)
+        at_x_b = np.matmul(at_x, B)
+        bt_x_a = np.matmul(bt_x, A)
+        inv_arg = R + np.matmul(bt_x, B)
+        la.inv(inv_arg)
+
+        x_next = np.matmul(at_x, A) - np.matmul(at_x_b, np.matmul(la.inv(inv_arg), bt_x_a)) + Q
+
+        # x_next = A.T @ x @ A - A.T @ x @ B @ \
+        #     la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
+
+        # x_next = np.matmul(np.matmul(A.T,x), A) - np.matmul(A,np.matmul(x, np.matmul(B.T, np.matmul(temp, np.matmul(B, np.matmul(A.T, x)))))) + Q
         if (abs(x_next - x)).max() < eps:
             break
         x = x_next
@@ -262,16 +274,20 @@ def dlqr(A, B, Q, R):
     """Solve the discrete time lqr controller.
     x[k+1] = A x[k] + B u[k]
     cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
-    # ref Bertsekas, p.151
     """
 
     # first, try to solve the ricatti equation
     X = solve_dare(A, B, Q, R)
 
     # compute the LQR gain
-    #K = la.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
-    K = np.matmul(la.inv(np.matmul(B,np.matmul(B.T, X))), np.matmul(A, np.matmul(B.T, X)))
-                  
+    bt_x = np.matmul(B.T, X)
+    bt_x_b = np.matmul(bt_x, B)
+    bt_x_a = np.matmul(bt_x, A)
+    K = np.matmul(la.inv(bt_x_b + R), bt_x_a)
+    # K = la.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
+
+    # K = np.matmul(la.inv(np.matmul(B,np.matmul(B.T, X))), np.matmul(A, np.matmul(B.T, X)))
+
     #eig_result = la.eig(A - B @ K)
     eig_result = la.eig(A - np.matmul(B,K))
 
@@ -331,7 +347,7 @@ def lqr_speed_steering_control(state, cx, cy, cyaw, ck, pe, pth_e, sp, Q, R):
     # accel: acceleration
     #ustar = -K @ x
     ustar = np.matmul(-K, x)
-    
+
     # calc steering input
     ff = math.atan2(L * k, 1)  # feedforward steering angle
     fb = pi_2_pi(ustar[0, 0])  # feedback steering angle
@@ -458,6 +474,8 @@ def main():
     cx, cy, cyaw, ck, s = calc_spline_course(
         ax, ay, ds=0.1)
     target_speed = 10.0 / 3.6  # simulation parameter km/h -> m/s
+    print(calc_spline_course(
+        ax, ay, ds=0.1))
 
     sp = calc_speed_profile(cyaw, target_speed)
 
@@ -497,7 +515,3 @@ if __name__ == '__main__':
 
 
 # In[ ]:
-
-
-
-
