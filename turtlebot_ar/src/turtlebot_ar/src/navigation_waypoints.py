@@ -17,6 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 # python navigation_waypoints.py
 import rospy
 import sys
+import os
 from geometry_msgs.msg import Twist
 
 
@@ -57,11 +58,12 @@ class NavigationWaypoints():
         print('test')
         filename = sys.argv[1]
         with open(filename) as f:
-            content = f.readlines()
+            content = f.read()
             print(content)
             result = []
             arr_x, arr_y = [], []
-            for line in content:    
+            temp = content.split('\n')
+            for line in temp:  
                 temp = line.split(',')
                 result.extend(temp)
             arr_x = result[::2]
@@ -83,7 +85,8 @@ class NavigationWaypoints():
  
 if __name__ == '__main__':
     try:
-        #NavigationWaypoints()
-        read_input()
+        print('pre-test')
+        NavigationWaypoints().read_input()
+        
     except:
         rospy.loginfo("NavigationWaypoints node terminated.")
