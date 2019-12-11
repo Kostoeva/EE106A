@@ -245,7 +245,12 @@ def solve_dare(A, B, Q, R):
     eps = 0.01
 
     for i in range(max_iter):
-        x_next = A.T @ x @ A - A.T @ x @ B @                  la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
+        #x_next = A.T @ x @ A - A.T @ x @ B @ \
+        #la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
+        temp2 = la.inv(R + B.T @ x @ B)
+        temp = la.inv(R + np.matmul(B, np.matmul(B.T,x)))
+        
+        x_next = np.matmul(np.matmul(A.T,x), A) - np.matmul(A,np.matmul(x, np.matmul(B.T, np.matmul(temp, np.matmul(B, np.matmul(A.T, x)))))) + Q
         if (abs(x_next - x)).max() < eps:
             break
         x = x_next
@@ -264,9 +269,11 @@ def dlqr(A, B, Q, R):
     X = solve_dare(A, B, Q, R)
 
     # compute the LQR gain
-    K = la.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
-
-    eig_result = la.eig(A - B @ K)
+    #K = la.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
+    K = np.matmul(la.inv(np.matmul(B,np.matmul(B.T, X))), np.matmul(A, np.matmul(B.T, X)))
+                  
+    #eig_result = la.eig(A - B @ K)
+    eig_result = la.eig(A - np.matmul(B,K))
 
     return K, X, eig_result[0]
 
@@ -322,8 +329,9 @@ def lqr_speed_steering_control(state, cx, cy, cyaw, ck, pe, pth_e, sp, Q, R):
     # u = [delta, accel]
     # delta: steering angle
     # accel: acceleration
-    ustar = -K @ x
-
+    #ustar = -K @ x
+    ustar = np.matmul(-K, x)
+    
     # calc steering input
     ff = math.atan2(L * k, 1)  # feedforward steering angle
     fb = pi_2_pi(ustar[0, 0])  # feedback steering angle
