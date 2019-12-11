@@ -21,6 +21,83 @@ import os
 from geometry_msgs.msg import Twist
 
 
+
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+from scipy.interpolate import interp1d
+
+
+import bisect
+import scipy.linalg as la
+
+
+
+class Spline2D:
+    """
+    2D Cubic Spline class
+    """
+
+    def __init__(self, x, y):
+        self.s = self.__calc_s(x, y)
+        self.sx = Spline(self.s, x)
+        self.sy = Spline(self.s, y)
+
+    def __calc_s(self, x, y):
+        dx = np.diff(x)
+        dy = np.diff(y)
+        self.ds = np.hypot(dx, dy)
+        s = [0]
+        s.extend(np.cumsum(self.ds))
+        return s
+
+    def calc_position(self, s):
+        """
+        calc position
+        """
+        x = self.sx.calc(s)
+        y = self.sy.calc(s)
+
+        return x, y
+
+    def calc_curvature(self, s):
+        """
+        calc curvature
+        """
+        dx = self.sx.calcd(s)
+        ddx = self.sx.calcdd(s)
+        dy = self.sy.calcd(s)
+        ddy = self.sy.calcdd(s)
+        k = (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2)**(3 / 2))
+        return k
+
+    def calc_yaw(self, s):
+        """
+        calc yaw
+        """
+        dx = self.sx.calcd(s)
+        dy = self.sy.calcd(s)
+        yaw = math.atan2(dy, dx)
+        return yaw
+
+
+    def calc_spline_course(x, y, ds=0.1):
+        sp = Spline2D(x, y)
+        s = list(np.arange(0, sp.s[-1], ds))
+
+        rx, ry, ryaw, rk = [], [], [], []
+        for i_s in s:
+            ix, iy = sp.calc_position(i_s)
+            rx.append(ix)
+            ry.append(iy)
+            ryaw.append(sp.calc_yaw(i_s))
+            rk.append(sp.calc_curvature(i_s))
+
+        return rx, ry, ryaw, rk, s
+
+
+
 class NavigationWaypoints():
 
     def __init__(self):
@@ -43,7 +120,7 @@ class NavigationWaypoints():
         # Twist is a datatype for velocity
         move_cmd = Twist()
     # let's go forward at 0.2 m/s
-        move_cmd.linear.x = -0.2
+        move_cmd.linear.x = 0.2
     # let's turn at 0 radians/s
         move_cmd.angular.z = 0.2
 
@@ -73,9 +150,21 @@ class NavigationWaypoints():
             print('\n')
             print(arr_x)
             print('\n')
-            print(arr_y)     
-                        
-        
+            print(arr_y) 
+
+        diff_x = arr_x[0]
+        diff_y = arr_y[0]
+        print("here0")
+
+
+        spline = Spline2D()
+        x_i, y_i, yaw, k, s = spline.calc_spline_course(arr_x[1:] + diff_x, arr_y[1:] + diff_y, ds =0.1) 
+        print("post")   
+
+        print(x_i)
+        print(y_i)
+
+
     def shutdown(self):
         # stop turtlebot
         rospy.loginfo("Stop TurtleBot")

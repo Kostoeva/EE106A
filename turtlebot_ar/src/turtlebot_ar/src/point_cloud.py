@@ -6,8 +6,7 @@
 
 #Import the dependencies as described in example_pub.py
 import rospy
-from sensor_msgs.msg import PointCloud2
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import LaserScan
 
 #Define the callback method which is called whenever this node receives a 
 #message on its subscribed topic. The received message is passed as the 
@@ -15,7 +14,7 @@ from sensor_msgs.msg import Image
 def callback(message):
 
     #Print the contents of the message to the console
-    print(message.data)
+    print(message.intensities)
 
 def callback_pc(message):
     print("point cloud")
@@ -35,7 +34,7 @@ def listener():
     #use to receive messages of type std_msgs/String from the topic /chatter_talk.
     #Whenever a new message is received, the method callback() will be called
     #with the received message as its first argument.
-    rospy.Subscriber("/red/camera/depth_registered/image", Image, callback)
+    rospy.Subscriber("/red/scan", LaserScan, callback)
 
 
     #Wait for messages to arrive on the subscribed topics, and exit the node

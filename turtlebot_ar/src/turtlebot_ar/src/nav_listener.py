@@ -7,6 +7,8 @@
 #Import the dependencies as described in example_pub.py
 import rospy
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+
 
 #Define the callback method which is called whenever this node receives a 
 #message on its subscribed topic. The received message is passed as the 
@@ -22,6 +24,12 @@ def callback(message):
     yaw = message.angular.z
 
 
+def callback_odom(message):
+
+    #Print the contents of the message to the console
+    # Linear = linear velocities: m/s
+    print(message.pose.pose)
+    
 #Define the method which contains the node's main functionality
 def listener():
 
@@ -44,6 +52,12 @@ def listener():
     rospy.spin()
 
 
+def listener_odom():
+    rospy.init_node('listener_odom', anonymous=True)
+    rospy.Subscriber("red/odom", Odometry, callback_odom)
+    rospy.spin()
+
 #Python's syntax for a main() method
 if __name__ == '__main__':
-    listener()
+    #listener()
+    listener_odom()
