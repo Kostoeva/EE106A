@@ -32,7 +32,118 @@ from scipy.interpolate import interp1d
 import bisect
 import scipy.linalg as la
 
+class Spline:
+    """
+    Cubic Spline class
+    """
 
+    def __init__(self, x, y):
+        self.b, self.c, self.d, self.w = [], [], [], []
+
+        self.x = x
+        self.y = y
+
+        self.nx = len(x)  # dimension of x
+        h = np.diff(x)
+
+        # calc coefficient c
+        self.a = [iy for iy in y]
+
+        # calc coefficient c
+        A = self.__calc_A(h)
+        B = self.__calc_B(h)
+        self.c = np.linalg.solve(A, B)
+        #  print(self.c1)
+
+        # calc spline coefficient b and d
+        for i in range(self.nx - 1):
+            self.d.append((self.c[i + 1] - self.c[i]) / (3.0 * h[i]))
+            tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] * \
+                (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
+            self.b.append(tb)
+
+    def calc(self, t):
+        """
+        Calc position
+        if t is outside of the input x, return None
+        """
+
+        if t < self.x[0]:
+            return None
+        elif t > self.x[-1]:
+            return None
+
+        i = self.__search_index(t)
+        dx = t - self.x[i]
+        result = self.a[i] + self.b[i] * dx + \
+            self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
+
+        return result
+
+    def calcd(self, t):
+        """
+        Calc first derivative
+        if t is outside of the input x, return None
+        """
+
+        if t < self.x[0]:
+            return None
+        elif t > self.x[-1]:
+            return None
+
+        i = self.__search_index(t)
+        dx = t - self.x[i]
+        result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
+        return result
+
+    def calcdd(self, t):
+        """
+        Calc second derivative
+        """
+
+        if t < self.x[0]:
+            return None
+        elif t > self.x[-1]:
+            return None
+
+        i = self.__search_index(t)
+        dx = t - self.x[i]
+        result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
+        return result
+
+    def __search_index(self, x):
+        """
+        search data segment index
+        """
+        return bisect.bisect(self.x, x) - 1
+
+    def __calc_A(self, h):
+        """
+        calc matrix A for spline coefficient c
+        """
+        A = np.zeros((self.nx, self.nx))
+        A[0, 0] = 1.0
+        for i in range(self.nx - 1):
+            if i != (self.nx - 2):
+                A[i + 1, i + 1] = 2.0 * (h[i] + h[i + 1])
+            A[i + 1, i] = h[i]
+            A[i, i + 1] = h[i]
+
+        A[0, 1] = 0.0
+        A[self.nx - 1, self.nx - 2] = 0.0
+        A[self.nx - 1, self.nx - 1] = 1.0
+        #  print(A)
+        return A
+
+    def __calc_B(self, h):
+        """
+        calc matrix B for spline coefficient c
+        """
+        B = np.zeros(self.nx)
+        for i in range(self.nx - 2):
+            B[i + 1] = 3.0 * (self.a[i + 2] - self.a[i + 1]) / \
+                h[i + 1] - 3.0 * (self.a[i + 1] - self.a[i]) / h[i]
+        return B
 
 class Spline2D:
     """
@@ -41,6 +152,7 @@ class Spline2D:
 
     def __init__(self, x, y):
         self.s = self.__calc_s(x, y)
+        
         self.sx = Spline(self.s, x)
         self.sy = Spline(self.s, y)
 
@@ -82,19 +194,21 @@ class Spline2D:
         return yaw
 
 
-    def calc_spline_course(x, y, ds=0.1):
-        sp = Spline2D(x, y)
-        s = list(np.arange(0, sp.s[-1], ds))
+def calc_spline_course(x, y, ds=0.1):
+    print("init calc spline course")
+    sp = Spline2D(x, y)
+    print("aft spline 2d)")
+    s = list(np.arange(0, sp.s[-1], ds))
+    print("aft s")
+    rx, ry, ryaw, rk = [], [], [], []
+    for i_s in s:
+        ix, iy = sp.calc_position(i_s)
+        rx.append(ix)
+        ry.append(iy)
+        ryaw.append(sp.calc_yaw(i_s))
+        rk.append(sp.calc_curvature(i_s))
 
-        rx, ry, ryaw, rk = [], [], [], []
-        for i_s in s:
-            ix, iy = sp.calc_position(i_s)
-            rx.append(ix)
-            ry.append(iy)
-            ryaw.append(sp.calc_yaw(i_s))
-            rk.append(sp.calc_curvature(i_s))
-
-        return rx, ry, ryaw, rk, s
+    return rx, ry, ryaw, rk, s
 
 
 
@@ -120,7 +234,7 @@ class NavigationWaypoints():
         # Twist is a datatype for velocity
         move_cmd = Twist()
     # let's go forward at 0.2 m/s
-        move_cmd.linear.x = 0.2
+        move_cmd.linear.x = -0.2
     # let's turn at 0 radians/s
         move_cmd.angular.z = 0.2
 
@@ -143,7 +257,9 @@ class NavigationWaypoints():
             temp = content.split('\n')
             for line in temp:  
                 temp = line.split(',')
-                result.extend(temp)
+                print(temp)
+                print([float(i) for i in temp])
+                result.extend([float(i) for i in temp])
             arr_x = result[::2]
             arr_y = result[1::2]
             print(result)
@@ -154,11 +270,13 @@ class NavigationWaypoints():
 
         diff_x = arr_x[0]
         diff_y = arr_y[0]
-        print("here0")
 
-
-        spline = Spline2D()
-        x_i, y_i, yaw, k, s = spline.calc_spline_course(arr_x[1:] + diff_x, arr_y[1:] + diff_y, ds =0.1) 
+        arr_x = np.array(arr_x)
+        arr_y = np.array(arr_y)
+        
+        print("got here")
+        print(arr_x + diff_x)
+        x_i, y_i, yaw, k, s = calc_spline_course(arr_x + diff_x, arr_y + diff_y) 
         print("post")   
 
         print(x_i)
@@ -177,6 +295,7 @@ class NavigationWaypoints():
 if __name__ == '__main__':
     try:
         print('pre-test')
+
         NavigationWaypoints().read_input()
         
     except:
