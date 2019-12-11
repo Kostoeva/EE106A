@@ -17,7 +17,14 @@ Turn TurtleBot on
 
 ---------------------------------------------------------------
 On work station
+
+# Gets current turtlebot velocity
+python nav_listener.py
+
+# Runs trajectory command + controller
 python navigation_waypoints.py
+
+
 
 
 

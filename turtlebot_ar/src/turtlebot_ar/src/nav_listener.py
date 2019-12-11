@@ -14,8 +14,10 @@ from geometry_msgs.msg import Twist
 def callback(message):
 
     #Print the contents of the message to the console
+    # Linear = linear velocities
     print(message.linear)
     print()
+    # Angular = angular velocities
     print(message.angular)
 
 #Define the method which contains the node's main functionality
