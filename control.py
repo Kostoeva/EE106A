@@ -466,7 +466,6 @@ def calc_speed_profile(cyaw, target_speed):
 
 
 def main():
-    print("LQR steering control tracking start!!")
     ax = [0.0, 6.0, 12.5, 10.0, 17.5, 20.0, 25.0]
     ay = [0.0, -3.0, -5.0, 6.5, 3.0, 0.0, 0.0]
     goal = [ax[-1], ay[-1]]
