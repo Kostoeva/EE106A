@@ -1,8 +1,8 @@
-prefix=/home/cc/ee106a/fa19/class/ee106a-aha/Desktop/turtlebot_ar/devel
+prefix=/scratch/turtlear/turtlebot_ar/devel
 
 Name: turtlebot_ar
 Description: Description of turtlebot_ar
 Version: 0.0.0
 Cflags: 
-Libs: -L/home/cc/ee106a/fa19/class/ee106a-aha/Desktop/turtlebot_ar/devel/lib 
+Libs: -L/scratch/turtlear/turtlebot_ar/devel/lib 
 Requires: 
