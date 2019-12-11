@@ -15,12 +15,7 @@ from sensor_msgs.msg import Image
 def callback(message):
 
     #Print the contents of the message to the console
-    # Linear = linear velocities: m/s
-    print(message.linear)
-    print()
-    # Angular = angular velocities: radians/s
-    print(message.angular)
-    yaw = message.angular.z
+    print(message.data)
 
 def callback_pc(message):
     print("point cloud")
@@ -40,7 +35,7 @@ def listener():
     #use to receive messages of type std_msgs/String from the topic /chatter_talk.
     #Whenever a new message is received, the method callback() will be called
     #with the received message as its first argument.
-    rospy.Subscriber("/red/camera/depth_registered/image", Twist, callback)
+    rospy.Subscriber("/red/camera/depth_registered/image", Image, callback)
 
 
     #Wait for messages to arrive on the subscribed topics, and exit the node
@@ -60,7 +55,7 @@ def listener_point():
     #use to receive messages of type std_msgs/String from the topic /chatter_talk.
     #Whenever a new message is received, the method callback() will be called
     #with the received message as its first argument.
-    rospy.Subscriber("/red/camera/depth/points", PointCloud2, callback)
+    rospy.Subscriber("/red/camera/depth/points", PointCloud2, callback_pc)
 
 
     #Wait for messages to arrive on the subscribed topics, and exit the node
@@ -69,4 +64,4 @@ def listener_point():
 
 #Python's syntax for a main() method
 if __name__ == '__main__':
-    listener_point()
+    listener()
