@@ -24,7 +24,16 @@ python nav_listener.py
 # Runs trajectory command + controller
 python navigation_waypoints.py
 
+--------------------------------------------------------------
+On work station -> Kinect
 
+in turtlebot: roslaunch turtlebot_bringup 3dsensor.launch
+
+on workstation: roslaunch turtlebot_rviz_launchers view_navigation.launch
+
+View -> 3rdPersonFollower
+Global Options -> Fixed Frame -> base_link
+Add > By Topic > /camera/depth_registered/image
 
 
 
