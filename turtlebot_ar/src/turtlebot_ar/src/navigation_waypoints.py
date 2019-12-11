@@ -19,6 +19,7 @@ import rospy
 import sys
 from geometry_msgs.msg import Twist
 
+
 class NavigationWaypoints():
     def __init__(self):
         # initiliaze
@@ -53,6 +54,7 @@ class NavigationWaypoints():
      #current speed from turtlebot
     #
     def read_input(self):
+        print('test')
         filename = sys.argv[1]
         with open(filename) as f:
             content = f.readlines()
