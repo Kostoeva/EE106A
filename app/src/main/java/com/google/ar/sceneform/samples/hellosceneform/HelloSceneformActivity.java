@@ -214,17 +214,6 @@ public class HelloSceneformActivity extends AppCompatActivity {
                 FileOutputStream fOut = new FileOutputStream(path + filename,true);
                 for (int i = 0; i < data.size(); i++) {
                     System.out.println("Start waypoint++++++++++++++++++++++++++++++++++++++");
-                    //System.out.println(data.get(i)[0]);
-                    //fOut.write((int)data.get(i)[0]);
-                    //System.out.println((int)(data.get(i)[0] * 100));
-                    //System.out.println(Float.floatToIntBits(data.get(i)[0]));
-                    //System.out.println(Float.toString(data.get(i)[0]).getBytes());
-                    //fOut.write(Float.toString(data.get(i)[0]).getBytes());
-                    //fOut.write(Integer.valueOf(String.valueOf(data.get(i)[0])));
-                    //fOut.write(Float.toString(data.get(i)[0]).getBytes());
-                    //System.out.println(Integer.valueOf(String.valueOf(data.get(i)[0])));
-                    //System.out.println(ByteBuffer.allocate(4).putFloat(data.get(i)[0]).array().toString());
-                    //System.out.println((int)(data.get(i)[0] * 100));
                     fOut.write(Float.toString(data.get(i)[0]).getBytes());
                     fOut.write(",".getBytes());
                     fOut.write(Float.toString(data.get(i)[1]).getBytes());
