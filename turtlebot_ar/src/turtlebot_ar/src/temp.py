@@ -18,18 +18,16 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 import rospy
 import sys
 import os
-from geometry_msgs.msg import Twist, Point
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Point, Twist
 from tf.transformations import euler_from_quaternion
 from math import atan2
-
+from nav_msgs.msg import Odometry
 
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 
 from scipy.interpolate import interp1d
-
 
 import bisect
 import scipy.linalg as la
@@ -154,32 +152,20 @@ class Spline2D:
 
     def __init__(self, x, y):
         self.s = self.__calc_s(x, y)
-        print("inside spline2d")
         
         self.sx = Spline(self.s, x)
         self.sy = Spline(self.s, y)
 
     def __calc_s(self, x, y):
-        print(np.diff(x))
-        print(np.diff(y))
         dx = np.diff(x)
         dy = np.diff(y)
-        print("z00")
-        print(dx)
-        print(dy)
-        square_dx = dx**2
-        square_dy = dy**2
         self.ds = np.hypot(dx, dy)
-        print(np.hypot(dx, dy))
-        #self.ds = np.hypot(dx, dy)
-        print("z")
         s = [0]
-        print("z0")
         s.extend(np.cumsum(self.ds))
         return s
 
     def calc_position(self, s):
-        """np.hypot(dx, dy))
+        """
         calc position
         """
         x = self.sx.calc(s)
@@ -209,11 +195,8 @@ class Spline2D:
 
 
 def calc_spline_course(x, y, ds=0.1):
-    print("init calc spline course")
     sp = Spline2D(x, y)
-    print("aft spline 2d)")
     s = list(np.arange(0, sp.s[-1], ds))
-    print("aft s")
     rx, ry, ryaw, rk = [], [], [], []
     for i_s in s:
         ix, iy = sp.calc_position(i_s)
@@ -224,205 +207,154 @@ def calc_spline_course(x, y, ds=0.1):
 
     return rx, ry, ryaw, rk, s
 
+def newOdom(msg):
+    global x
+    global y
+    global theta
+ 
+    x = msg.pose.pose.position.x
+    y = msg.pose.pose.position.y
+ 
+    rot_q = msg.pose.pose.orientation
+    (roll, pitch, theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
 
+def read_input(self):
+    print('test')
+    filename = sys.argv[1]
+    with open(filename) as f:
+        content = f.read()
+        print(content)
+        result = []
+        arr_x, arr_y = [], []
+        temp = content.split('\n')
+        for line in temp:  
+            temp = line.split(',')
+            result.extend([float(i) for i in temp])
+        arr_x = result[::2]
+        arr_y = result[1::2]
+        print(result)
+        print('\n')
+        print(arr_x)
+        print('\n')
+        print(arr_y) 
+
+    diff_x = arr_x[0]
+    diff_y = arr_y[0]
+
+    arr_x = np.array(arr_x)
+    arr_y = np.array(arr_y)
+        
+    print("got here")
+    x_i, y_i, yaw, k, s = calc_spline_course(arr_x - diff_x, arr_y - diff_y) 
+    print("post")   
+
+        # trajectory x, y in robot frame
+    print(x_i)
+    print(y_i)
+
+    return x_i, y_i
 
 class NavigationWaypoints():
+    
+
     def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.theta = 0
-        self.ck = 0
-        self.yaw = 0
+
         # initiliaze
         rospy.init_node('Navigation_Waypoints', anonymous=False)
 
     # tell user how to stop TurtleBot
         rospy.loginfo("To stop TurtleBot CTRL + C")
 
+
         # What function to call when you ctrl + c    
-        rospy.on_shutdown(self.shutdown)
+        rospy.on_shutdown(self.shutdown())
         
     # Create a publisher which can "talk" to TurtleBot and tell it to move
         # Tip: You may need to change cmd_vel_mux/input/navi to /cmd_vel if you're not using TurtleBot2
-        print("pre")
-        self.sub = rospy.Subscriber("/green/odom", Odometry, self.newOdom)
-        print("after sub")
-        self.cmd_vel = rospy.Publisher('/green/mobile_base/commands/velocity', Twist, queue_size=10)
-        #self.sub_nav = rospy.Subscriber("/green/navigation", Twist, self.callbackNav)
+        #self.cmd_vel = rospy.Publisher('red/mobile_base/commands/velocity', Twist, queue_size=10)
+        print("here")
+        self.sub = rospy.Subscriber("/green/odom", Odometry, newOdom)
+        self.pub = rospy.Publisher("/geren/mobile_base/commands/velocity", Twist, queue_size = 10)
 
+     # get trajectory waypoints
+        x_i, y_i = read_input()
 
-     
-    #TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ
-        r = rospy.Rate(10);
-        move_cmd = Twist()
-        x_arr, y_arr = self.read_input()
-        print("aaaa")
+        # move turtlebot to every point
+       
 
-        
-
-        goalie = [x_arr[-1], y_arr[-1]]    
-        print("a")
-        target_speed = 10.0 /33.6  # simulation parameter km/h -> m/s
-        print(self.yaw)
-        sp = calc_speed_profile(self.yaw, target_speed)
-        print(sp)
-
-        i=1
-
+        speed = Twist()
+         
+        r = rospy.Rate(4)
+         
+        goal = Point()
+        goal.x = x_i[1]
+        goal.y = y_i[1]
+        print('first point',goal.x, goal.y)
+         
         while not rospy.is_shutdown():
-            # print("b")
-            goal = Point()
-        
-            goal.x = x_arr[i] 
-            goal.y = y_arr[i] 
-            inc_x = goal.x -self.x
-            inc_y = goal.y -self.y
-            print("c")
+            print("start of loop")
+            inc_x = goal.x -x
+            inc_y = goal.y -y
+         
             angle_to_goal = atan2(inc_y, inc_x)
-            print('d')
-            print(inc_x)
-            print(inc_y)
-            if abs(inc_x) < 0.05 and abs(inc_y) < 0.05:
-                print('e')  
-                i+=1
-                if i == len(x_arr) -1:
-                    print('yeet')
-                    self.shutdown()  
-            # if not facing next waypoint, rotate turtlebot
-
-            elif abs(angle_to_goal - self.theta) > 0.03:
-                move_cmd.linear.x = 0.0
-                move_cmd.angular.z = 0.3
-                print('f')
+         
+            if abs(angle_to_goal - theta) > 0.1:
+                speed.linear.x = 0.0
+                speed.angular.z = 0.3
             else:
-            # if facing next waypoint, move the turtlebot
-                move_cmd.linear.x = 0.5
-                move_cmd.angular.z = 0.0
-                print('g')
-            print("inside3")
+                speed.linear.x = 0.5
+                speed.angular.z = 0.0
+         
+            self.pub.publish(speed)
+            r.sleep() 
+    #TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ
+        #r = rospy.Rate(10);
 
-            #t, x, y, yaw, v = do_simulation(x_arr, y_arr, self.yaw, self.ck, sp, goalie)
-            #print(v)
-            #print(yaw)
+        # Twist is a datatype for velocity
+        #move_cmd = Twist()
+    # let's go forward at 0.2 m/s
+        #move_cmd.linear.x = 0.0
+    # let's turn at 0 radians/s
+        #move_cmd.angular.z = 0.2
 
-            #print("afterwatrds---------------------------------------------------------")
-            self.cmd_vel.publish(move_cmd)
-            print(move_cmd.linear.x)
-            print(move_cmd.angular.z)
-
-            rospy.sleep(0.1) 
-            print("inside4")   
-
-            # for i in range(len(v)):
-            #     # print(i)
-
-            #     # move_cmd.linear.x = v[i]
-            #     # move_cmd.angular.z = yaw[i] 
-
-            
-            #     self.cmd_vel.publish(move_cmd)
-
-            #     rospy.sleep(0.5)    
+    # as long as you haven't ctrl + c keeping doing...
+        #while not rospy.is_shutdown():
         # publish the velocity
+        #    self.cmd_vel.publish(move_cmd)
         # wait for 0.1 seconds (10 HZ) and publish again
+        #    r.sleep()
      #current speed from turtlebot
     #
 
-    #def callbackNav(self,message):
 
-        #Print the contents of the message to the console
-        # Linear = linear velocities: m/s
-        # print(message.linear)
-        # print()
-        # # Angular = angular velocities: radians/s
-        # print(message.angular)
-        #self.yaw = message.angular.z
-
-    def newOdom(self, msg):
-        x = msg.pose.pose.position.x
-        y = msg.pose.pose.position.y
-     
-        rot_q = msg.pose.pose.orientation
-        (roll, pitch, theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
-        self.x, self.y, self.theta = x, y, theta
-        # return x, y, theta
-
-
-    def read_input(self, filename="temp.txt"):
-        print('test')
-        #filename = sys.argv[1]
-        with open(filename) as f:
-            content = f.read()
-            print(content)
-            result = []
-            arr_x, arr_y, arr_z = [], [], []
-            temp = content.split('\n')
-            for line in temp:  
-                temp = line.split(',')
-                print(temp)
-                print([float(i) for i in temp])
-                result.extend([float(i) for i in temp])
-            arr_x = result[::3]
-            arr_y = result[1::3]
-            arr_z = result[2::3]
-            print('yeetttt')
-            print(result) 
-            print('\n')
-            print(arr_x)
-            print('\n')
-            print(arr_y) 
-            print('\n')
-            print(arr_z)
-
-        diff_x = arr_x[0]
-        diff_y = arr_y[0]
-        diff_z = arr_z[0]
-        arr_x = np.array(arr_x)
-        arr_y = np.array(arr_y)
         
-        print("got here")
-        print(arr_x - diff_x)
-        print(arr_y - diff_y)
-        x_i, y_i, self.yaw, self.ck, s = calc_spline_course(arr_x - diff_x, arr_y - diff_y) 
-        print("post")   
-
-        print(x_i)
-        print(y_i)
-
-
-        return x_i, y_i
-
 
 
         # cx, cy, cyaw, ck, s = calc_spline_course(
         # ax, ay, ds=0.1)
-        # ax = [0.0, 6.0, 12.5, 10.0, 17.5, 20.0, 25.0]
-        # ay = [0.0, -3.0, -5.0, 6.5, 3.0, 0.0, 0.0]
-        # goal = [ax[-1], ay[-1]]
+        #ax = [0.0, 6.0, 12.5, 10.0, 17.5, 20.0, 25.0]
+        #ay = [0.0, -3.0, -5.0, 6.5, 3.0, 0.0, 0.0]
+        #goal = [ax[-1], ay[-1]]
 
-        # target_speed = 10.0 / 3.6  # simulation parameter km/h -> m/s
+        #target_speed = 10.0 / 3.6  # simulation parameter km/h -> m/s
 
-        # sp = calc_speed_profile(yaw, target_speed)
+        #sp = calc_speed_profile(yaw, target_speed)
 
-        # t, x, y, yaw, v = do_simulation(x_i, y_i, yaw, k, sp, goal)
+        #t, x, y, yaw, v = do_simulation(x_i, y_i, yaw, k, sp, goal)
 
 
     def shutdown(self):
         # stop turtlebot
         rospy.loginfo("Stop TurtleBot")
     # a default Twist has linear.x of 0 and angular.z of 0.  So it'll stop TurtleBot
-        self.cmd_vel.publish(Twist())
+        self.pub.publish(Twist())
     # sleep just makes sure TurtleBot receives the stop command prior to shutting down the script
         rospy.sleep(1)
-   
-
-    # show_animation = True
-
-lqr_Q = np.eye(5)
-lqr_R = np.eye(2)
-dt = 0.1  # time tick[s]
-L = 0.5  # Wheel base of the vehicle [m]
-max_steer = np.deg2rad(90.0)  # maximum steering angle[rad]
+    # lqr_Q = np.eye(5)
+    # lqr_R = np.eye(2)
+    # dt = 0.1  # time tick[s]
+    # L = 0.5  # Wheel base of the vehicle [m]
+    # max_steer = np.deg2rad(45.0)  # maximum steering angle[rad]
 
 class State:
 
@@ -512,16 +444,14 @@ def dlqr(A, B, Q, R):
 
 
 def lqr_speed_steering_control(state, cx, cy, cyaw, ck, pe, pth_e, sp, Q, R):
-    print("outside1")
     ind, e = calc_nearest_index(state, cx, cy, cyaw)
-    print("outside2")
+
     tv = sp[ind]
 
     k = ck[ind]
     v = state.v
-    print("outside3")
     th_e = pi_2_pi(state.yaw - cyaw[ind])
-    print("outside4")
+
     # A = [1.0, dt, 0.0, 0.0, 0.0
     #      0.0, 0.0, v, 0.0, 0.0]
     #      0.0, 0.0, 1.0, dt, 0.0]
@@ -541,13 +471,11 @@ def lqr_speed_steering_control(state, cx, cy, cyaw, ck, pe, pth_e, sp, Q, R):
     #     v/L, 0.0
     #     0.0, dt]
     B = np.zeros((5, 2))
-    print(dt)
     B[3, 0] = v / L
     B[4, 1] = dt
 
-    print("outside5")
     K, _, _ = dlqr(A, B, Q, R)
-    print("outside6")
+
     # state vector
     # x = [e, dot_e, th_e, dot_th_e, delta_v]
     # e: lateral distance to the path
@@ -567,9 +495,8 @@ def lqr_speed_steering_control(state, cx, cy, cyaw, ck, pe, pth_e, sp, Q, R):
     # delta: steering angle
     # accel: acceleration
     #ustar = -K @ x
-    print("outside7")
     ustar = np.matmul(-K, x)
-    print("outside8")
+
     # calc steering input
     ff = math.atan2(L * k, 1)  # feedforward steering angle
     fb = pi_2_pi(ustar[0, 0])  # feedback steering angle
@@ -592,6 +519,7 @@ def calc_nearest_index(state, cx, cy, cyaw):
     ind = d.index(mind)
 
     mind = math.sqrt(mind)
+
     dxl = cx[ind] - state.x
     dyl = cy[ind] - state.y
 
@@ -607,6 +535,7 @@ def do_simulation(cx, cy, cyaw, ck, speed_profile, goal):
     stop_speed = 0.05
 
     state = State(x=-0.0, y=-0.0, yaw=0.0, v=0.0)
+
     time = 0.0
     x = [state.x]
     y = [state.y]
@@ -616,22 +545,9 @@ def do_simulation(cx, cy, cyaw, ck, speed_profile, goal):
 
     e, e_th = 0.0, 0.0
 
-
-    print("inside3.1")
-
     while T >= time:
-        print("inside3.2")
-        # lqr_Q = np.eye(5)
-        # lqr_R = np.eye(2)
-        # dt = 0.1  # time tick[s]
-        # L = 0.5  # Wheel base of the vehicle [m]
-        # max_steer = np.deg2rad(45.0)  # maximum steering angle[rad]
-  
-        print(lqr_Q)
-        print(lqr_R)
         dl, target_ind, e, e_th, ai = lqr_speed_steering_control(
             state, cx, cy, cyaw, ck, e, e_th, speed_profile, lqr_Q, lqr_R)
-        print("inside-4")
 
         state = update(state, ai, dl)
 
@@ -658,10 +574,10 @@ def calc_speed_profile(cyaw, target_speed):
     speed_profile = [target_speed] * len(cyaw)
 
     direction = 1.0
+
     # Set stop point
     for i in range(len(cyaw) - 1):
         dyaw = abs(cyaw[i + 1] - cyaw[i])
-
         switch = math.pi / 4.0 <= dyaw < math.pi / 2.0
 
         if switch:
@@ -676,13 +592,10 @@ def calc_speed_profile(cyaw, target_speed):
             speed_profile[i] = 0.0
 
     # speed down
-
-    for i in range(10):
+    for i in range(40):
         speed_profile[-i] = target_speed / (50 - i)
-
         if speed_profile[-i] <= 1.0 / 3.6:
             speed_profile[-i] = 1.0 / 3.6
-
 
     return speed_profile
 

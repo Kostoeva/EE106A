@@ -13,51 +13,31 @@ from nav_msgs.msg import Odometry
 #Define the callback method which is called whenever this node receives a 
 #message on its subscribed topic. The received message is passed as the 
 #first argument to callback().
-def callback(message):
 
-    #Print the contents of the message to the console
-    # Linear = linear velocities: m/s
-    print(message.linear)
-    print()
-    # Angular = angular velocities: radians/s
-    print(message.angular)
-    yaw = message.angular.z
+class cycle_listener:
+    def __init__(self):
 
+        #Run this program as a new node in the ROS computation graph
+        #called /listener_<id>, where <id> is a randomly generated numeric
+        #string. This randomly generated name means we can start multiple
+        #copies of this node without having multiple nodes with the same
+        #name, which ROS doesn't allow.
+        rospy.init_node('cycle_listener', anonymous=True)
 
-def callback_odom(message):
+        #Create a new instance of the rospy.Subscriber object which we can 
+        #use to receive messages of type std_msgs/String from the topic /chatter_talk.
+        #Whenever a new message is received, the method callback() will be called
+        #with the received message as its first argument.
+        self.sub = rospy.Subscriber("/green/mobile_base/commands/velocity", Twist, self.callback)
+        self.pub = rospy.Publisher("/green/navigation", Twist, queue_size=100)
+        rospy.spin()
 
-    #Print the contents of the message to the console
-    # Linear = linear velocities: m/s
-    print(message.pose.pose)
-    
-#Define the method which contains the node's main functionality
-def listener():
+    def callback(self,message):
+        twist = message
+        self.pub.publish(twist)
 
-    #Run this program as a new node in the ROS computation graph
-    #called /listener_<id>, where <id> is a randomly generated numeric
-    #string. This randomly generated name means we can start multiple
-    #copies of this node without having multiple nodes with the same
-    #name, which ROS doesn't allow.
-    rospy.init_node('listener', anonymous=True)
-
-    #Create a new instance of the rospy.Subscriber object which we can 
-    #use to receive messages of type std_msgs/String from the topic /chatter_talk.
-    #Whenever a new message is received, the method callback() will be called
-    #with the received message as its first argument.
-    rospy.Subscriber("red/mobile_base/commands/velocity", Twist, callback)
-
-
-    #Wait for messages to arrive on the subscribed topics, and exit the node
-    #when it is killed with Ctrl+C
-    rospy.spin()
-
-
-def listener_odom():
-    rospy.init_node('listener_odom', anonymous=True)
-    rospy.Subscriber("red/odom", Odometry, callback_odom)
-    rospy.spin()
 
 #Python's syntax for a main() method
 if __name__ == '__main__':
     #listener()
-    listener_odom()
+    cycle_listener()

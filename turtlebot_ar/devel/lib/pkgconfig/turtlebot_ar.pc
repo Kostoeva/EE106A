@@ -1,8 +1,8 @@
-prefix=/scratch/turtlear/turtlebot_ar/devel
+prefix=/scratch/EE106A/turtlebot_ar/devel
 
 Name: turtlebot_ar
 Description: Description of turtlebot_ar
 Version: 0.0.0
 Cflags: 
-Libs: -L/scratch/turtlear/turtlebot_ar/devel/lib 
+Libs: -L/scratch/EE106A/turtlebot_ar/devel/lib 
 Requires: 
