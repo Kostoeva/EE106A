@@ -262,80 +262,72 @@ class NavigationWaypoints():
 
         goalie = [x_arr[-1], y_arr[-1]]    
         print("a")
-        target_speed = 10.0 /13.6  # simulation parameter km/h -> m/s
+        target_speed = 10.0 /33.6  # simulation parameter km/h -> m/s
         print(self.yaw)
-        
-        
+        sp = calc_speed_profile(self.yaw, target_speed)
+        print(sp)
 
         i=1
 
         while not rospy.is_shutdown():
-            sp = calc_speed_profile(x_arr, y_arr, self.yaw, target_speed)
-
-        # t, x, y, yaw, v = do_simulation(x_i, y_i, yaw, k, sp, goal)
-            #print('poit')
-            t, x, y, yaw, v = closed_loop_prediction(x_arr, y_arr, self.yaw, self.ck, sp, goalie)
-            #print('noit')
             # print("b")
-            # goal = Point()
+            goal = Point()
         
-            # goal.x = x_arr[i] 
-            # goal.y = y_arr[i] 
-            # inc_x = goal.x -self.x
-            # inc_y = goal.y -self.y
-            # print("c")
-            # angle_to_goal = atan2(inc_y, inc_x)
-            # print('d')
-            # print(inc_x)
-            # print(inc_y)
-            # test = False
-            # if abs(inc_x) < 0.05 and abs(inc_y) < 0.05:
-            #     print('e')  
-            #     i+=1
-            #     if i == len(x_arr) -1:
-            #         print('yeet')
-            #         self.shutdown()  
-            # # if not facing next waypoint, rotate turtlebot
+            goal.x = x_arr[i] 
+            goal.y = y_arr[i] 
+            inc_x = goal.x -self.x
+            inc_y = goal.y -self.y
+            print("c")
+            angle_to_goal = atan2(inc_y, inc_x)
+            print('d')
+            print(inc_x)
+            print(inc_y)
+            test = False
+            if abs(inc_x) < 0.05 and abs(inc_y) < 0.05:
+                print('e')  
+                i+=1
+                if i == len(x_arr) -1:
+                    print('yeet')
+                    self.shutdown()  
+            # if not facing next waypoint, rotate turtlebot
 
-            # elif abs(angle_to_goal - self.theta) > 0.03:
-            #     move_cmd.linear.x = 0.0
-            #     if test:
-            #         move_cmd.angular.z = 0.4
-            #     else:
-            #         move_cmd.angular.z = -0.4
-            #     print('f')
-            #     test = True
-            # else:
-            # # if facing next waypoint, move the turtlebot
-            #     move_cmd.linear.x = 0.3
-            #     move_cmd.angular.z = 0.0
-            #     print('g')
-            # print("inside3")
+            elif abs(angle_to_goal - self.theta) > 0.03:
+                move_cmd.linear.x = 0.0
+                if test:
+                    move_cmd.angular.z = 0.4
+                else:
+                    move_cmd.angular.z = -0.4
+                print('f')
+                test = True
+            else:
+            # if facing next waypoint, move the turtlebot
+                move_cmd.linear.x = 0.3
+                move_cmd.angular.z = 0.0
+                print('g')
+            print("inside3")
 
             #t, x, y, yaw, v = do_simulation(x_arr, y_arr, self.yaw, self.ck, sp, goalie)
             #print(v)
             #print(yaw)
 
             #print("afterwatrds---------------------------------------------------------")
-            #self.cmd_vel.publish(move_cmd)
+            self.cmd_vel.publish(move_cmd)
             print(move_cmd.linear.x)
             print(move_cmd.angular.z)
 
-            #rospy.sleep(0.1) 
+            rospy.sleep(0.1) 
             print("inside4")   
 
-            for i in range(len(v)):
-                # print(i)
+            # for i in range(len(v)):
+            #     # print(i)
 
-                move_cmd.linear.x = v[i]
-                move_cmd.angular.z = yaw[i] 
-                print(move_cmd.linear.x)
-                print(move_cmd.angular.z)
+            #     # move_cmd.linear.x = v[i]
+            #     # move_cmd.angular.z = yaw[i] 
 
             
-                self.cmd_vel.publish(move_cmd)
+            #     self.cmd_vel.publish(move_cmd)
 
-                rospy.sleep(0.5)    
+            #     rospy.sleep(0.5)    
         # publish the velocity
         # wait for 0.1 seconds (10 HZ) and publish again
      #current speed from turtlebot
@@ -415,7 +407,9 @@ class NavigationWaypoints():
 
         # target_speed = 10.0 / 3.6  # simulation parameter km/h -> m/s
 
-     
+        # sp = calc_speed_profile(yaw, target_speed)
+
+        # t, x, y, yaw, v = do_simulation(x_i, y_i, yaw, k, sp, goal)
 
 
     def shutdown(self):
@@ -429,10 +423,8 @@ class NavigationWaypoints():
 
     # show_animation = True
 
-Kp = 1.0  # speed proportional gain
-
-Q = np.eye(4)
-R = np.eye(1)
+lqr_Q = np.eye(5)
+lqr_R = np.eye(2)
 dt = 0.1  # time tick[s]
 L = 0.5  # Wheel base of the vehicle [m]
 max_steer = np.deg2rad(90.0)  # maximum steering angle[rad]
@@ -464,19 +456,15 @@ def update(state, a, delta):
 def pi_2_pi(angle):
     return (angle + math.pi) % (2 * math.pi) - math.pi
 
-def PIDControl(target, current):
-    a = Kp * (target - current)
 
-    return a
-
-def solve_DARE(A, B, Q, R):
+def solve_dare(A, B, Q, R):
     """
     solve a discrete time_Algebraic Riccati equation (DARE)
     """
-    X = Q
+    x = Q
+    x_next = Q
     max_iter = 150
     eps = 0.01
-
     for i in range(max_iter):
         #x_next = A.T @ x @ A - A.T @ x @ B @ \
         #la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
@@ -484,84 +472,118 @@ def solve_DARE(A, B, Q, R):
         # temp = la.inv(R + np.matmul(B, np.matmul(B.T,x)))
 
 
-        at_x = np.matmul(A.T, X)
-        bt_x = np.matmul(B.T, X)
+        at_x = np.matmul(A.T, x)
+        bt_x = np.matmul(B.T, x)
         at_x_b = np.matmul(at_x, B)
         bt_x_a = np.matmul(bt_x, A)
         inv_arg = R + np.matmul(bt_x, B)
         la.inv(inv_arg)
 
-        Xn = np.matmul(at_x, A) - np.matmul(at_x_b, np.matmul(la.inv(inv_arg), bt_x_a)) + Q
+        x_next = np.matmul(at_x, A) - np.matmul(at_x_b, np.matmul(la.inv(inv_arg), bt_x_a)) + Q
 
         # x_next = A.T @ x @ A - A.T @ x @ B @ \
         #     la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
 
         # x_next = np.matmul(np.matmul(A.T,x), A) - np.matmul(A,np.matmul(x, np.matmul(B.T, np.matmul(temp, np.matmul(B, np.matmul(A.T, x)))))) + Q
-        if (abs(Xn - X)).max() < eps:
+        if (abs(x_next - x)).max() < eps:
             break
-        X = Xn
+        x = x_next
 
-    return Xn
+    return x_next
+
 
 def dlqr(A, B, Q, R):
-    print('show me a magic trick')
     """Solve the discrete time lqr controller.
     x[k+1] = A x[k] + B u[k]
     cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
-    # ref Bertsekas, p.151
     """
 
     # first, try to solve the ricatti equation
-    print('i dare u')
-    X = solve_DARE(A, B, Q, R)
-    print('oops i wanted truth')
+    X = solve_dare(A, B, Q, R)
 
     # compute the LQR gain
     bt_x = np.matmul(B.T, X)
     bt_x_b = np.matmul(bt_x, B)
     bt_x_a = np.matmul(bt_x, A)
     K = np.matmul(la.inv(bt_x_b + R), bt_x_a)
+    # K = la.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
 
-    eigVals = la.eig(A - np.matmul(B,K))
+    # K = np.matmul(la.inv(np.matmul(B,np.matmul(B.T, X))), np.matmul(A, np.matmul(B.T, X)))
 
-    return K, X, eigVals
+    #eig_result = la.eig(A - B @ K)
+    eig_result = la.eig(A - np.matmul(B,K))
+
+    return K, X, eig_result[0]
 
 
-def lqr_steering_control(state, cx, cy, cyaw, ck, pe, pth_e):
+def lqr_speed_steering_control(state, cx, cy, cyaw, ck, pe, pth_e, sp, Q, R):
+    print("outside1")
     ind, e = calc_nearest_index(state, cx, cy, cyaw)
+    print("outside2")
+    tv = sp[ind]
 
     k = ck[ind]
     v = state.v
+    print("outside3")
     th_e = pi_2_pi(state.yaw - cyaw[ind])
-
-    A = np.zeros((4, 4))
+    print("outside4")
+    # A = [1.0, dt, 0.0, 0.0, 0.0
+    #      0.0, 0.0, v, 0.0, 0.0]
+    #      0.0, 0.0, 1.0, dt, 0.0]
+    #      0.0, 0.0, 0.0, 0.0, 0.0]
+    #      0.0, 0.0, 0.0, 0.0, 1.0]
+    A = np.zeros((5, 5))
     A[0, 0] = 1.0
     A[0, 1] = dt
     A[1, 2] = v
     A[2, 2] = 1.0
     A[2, 3] = dt
-    # print(A)
-    print('key')
-    B = np.zeros((4, 1))
+    A[4, 4] = 1.0
+
+    # B = [0.0, 0.0
+    #     0.0, 0.0
+    #     0.0, 0.0
+    #     v/L, 0.0
+    #     0.0, dt]
+    B = np.zeros((5, 2))
+    print(dt)
     B[3, 0] = v / L
-    print('wat is dlqr')
-    K, blah, blah2 = dlqr(A, B, Q, R)
-    print('now i know dlqr')
+    B[4, 1] = dt
 
-    x = np.zeros((4, 1))
-
+    print("outside5")
+    K, _, _ = dlqr(A, B, Q, R)
+    print("outside6")
+    # state vector
+    # x = [e, dot_e, th_e, dot_th_e, delta_v]
+    # e: lateral distance to the path
+    # dot_e: derivative of e
+    # th_e: angle difference to the path
+    # dot_th_e: derivative of th_e
+    # delta_v: difference between current speed and target speed
+    x = np.zeros((5, 1))
     x[0, 0] = e
     x[1, 0] = (e - pe) / dt
     x[2, 0] = th_e
     x[3, 0] = (th_e - pth_e) / dt
+    x[4, 0] = v - tv
 
-    ff = math.atan2(L * k, 1)
-    fb = pi_2_pi((np.matmul(-K,x))[0, 0])
-    print('peele')
-
+    # input vector
+    # u = [delta, accel]
+    # delta: steering angle
+    # accel: acceleration
+    #ustar = -K @ x
+    print("outside7")
+    ustar = np.matmul(-K, x)
+    print("outside8")
+    # calc steering input
+    ff = math.atan2(L * k, 1)  # feedforward steering angle
+    fb = pi_2_pi(ustar[0, 0])  # feedback steering angle
     delta = ff + fb
 
-    return delta, ind, e, th_e
+    # calc accel input
+    accel = ustar[1, 0]
+
+    return delta, ind, e, th_e, accel
 
 
 def calc_nearest_index(state, cx, cy, cyaw):
@@ -584,66 +606,12 @@ def calc_nearest_index(state, cx, cy, cyaw):
 
     return ind, mind
 
-# def do_simulation(cx, cy, cyaw, ck, speed_profile, goal):
-#     T = 500.0  # max simulation time
-#     goal_dis = 0.3
-#     stop_speed = 0.05
-
-#     state = State(x=-0.0, y=-0.0, yaw=0.0, v=0.0)
-#     time = 0.0
-#     x = [state.x]
-#     y = [state.y]
-#     yaw = [state.yaw]
-#     v = [state.v]
-#     t = [0.0]
-
-#     e, e_th = 0.0, 0.0
-
-
-#     print("inside3.1")
-
-#     while T >= time:
-#         print("inside3.2")
-#         # lqr_Q = np.eye(5)
-#         # lqr_R = np.eye(2)
-#         # dt = 0.1  # time tick[s]
-#         # L = 0.5  # Wheel base of the vehicle [m]
-#         # max_steer = np.deg2rad(45.0)  # maximum steering angle[rad]
-  
-#         print(lqr_Q)
-#         print(lqr_R)
-#         dl, target_ind, e, e_th, ai = lqr_speed_steering_control(
-#             state, cx, cy, cyaw, ck, e, e_th, speed_profile, lqr_Q, lqr_R)
-#         print("inside-4")
-
-#         state = update(state, ai, dl)
-
-#         if abs(state.v) <= stop_speed:
-#             target_ind += 1
-
-#         time = time + dt
-
-#         # check goal
-#         dx = state.x - goal[0]
-#         dy = state.y - goal[1]
-#         if math.hypot(dx, dy) <= goal_dis:
-#             print("Goal")
-#             break
-
-#         x.append(state.x)
-#         y.append(state.y)
-#         yaw.append(state.yaw)
-#         v.append(state.v)
-#         t.append(time)
-#     return t, x, y, yaw, v
-
-def closed_loop_prediction(cx, cy, cyaw, ck, speed_profile, goal):
-    T = 15.0  # max simulation time
+def do_simulation(cx, cy, cyaw, ck, speed_profile, goal):
+    T = 500.0  # max simulation time
     goal_dis = 0.3
-    stop_speed = 0.005
+    stop_speed = 0.05
 
     state = State(x=-0.0, y=-0.0, yaw=0.0, v=0.0)
-    print('noice')
     time = 0.0
     x = [state.x]
     y = [state.y]
@@ -652,20 +620,30 @@ def closed_loop_prediction(cx, cy, cyaw, ck, speed_profile, goal):
     t = [0.0]
 
     e, e_th = 0.0, 0.0
-    print('noiceee')
+
+
+    print("inside3.1")
+
     while T >= time:
-        print('white ice')
-        dl, target_ind, e, e_th = lqr_steering_control(
-            state, cx, cy, cyaw, ck, e, e_th)
-        print('black ice')
-        ai = PIDControl(speed_profile[target_ind], state.v)
+        print("inside3.2")
+        # lqr_Q = np.eye(5)
+        # lqr_R = np.eye(2)
+        # dt = 0.1  # time tick[s]
+        # L = 0.5  # Wheel base of the vehicle [m]
+        # max_steer = np.deg2rad(45.0)  # maximum steering angle[rad]
+  
+        print(lqr_Q)
+        print(lqr_R)
+        dl, target_ind, e, e_th, ai = lqr_speed_steering_control(
+            state, cx, cy, cyaw, ck, e, e_th, speed_profile, lqr_Q, lqr_R)
+        print("inside-4")
+
         state = update(state, ai, dl)
-        print('aaron balake')
+
         if abs(state.v) <= stop_speed:
             target_ind += 1
 
         time = time + dt
-        print('stop copying me bro')
 
         # check goal
         dx = state.x - goal[0]
@@ -673,24 +651,22 @@ def closed_loop_prediction(cx, cy, cyaw, ck, speed_profile, goal):
         if math.hypot(dx, dy) <= goal_dis:
             print("Goal")
             break
-        print(' i said bbbbbb')
 
         x.append(state.x)
         y.append(state.y)
         yaw.append(state.yaw)
         v.append(state.v)
         t.append(time)
-
     return t, x, y, yaw, v
 
-def calc_speed_profile(cx, cy, cyaw, target_speed):
-    speed_profile = [target_speed] * len(cx)
+def calc_speed_profile(cyaw, target_speed):
+    speed_profile = [target_speed] * len(cyaw)
 
     direction = 1.0
-
     # Set stop point
-    for i in range(len(cx) - 1):
+    for i in range(len(cyaw) - 1):
         dyaw = abs(cyaw[i + 1] - cyaw[i])
+
         switch = math.pi / 4.0 <= dyaw < math.pi / 2.0
 
         if switch:
@@ -704,9 +680,17 @@ def calc_speed_profile(cx, cy, cyaw, target_speed):
         if switch:
             speed_profile[i] = 0.0
 
-    speed_profile[-1] = 0.0
+    # speed down
+
+    for i in range(10):
+        speed_profile[-i] = target_speed / (50 - i)
+
+        if speed_profile[-i] <= 1.0 / 3.6:
+            speed_profile[-i] = 1.0 / 3.6
+
 
     return speed_profile
+
 
  
 if __name__ == '__main__':
