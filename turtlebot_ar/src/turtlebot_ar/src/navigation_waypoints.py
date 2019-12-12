@@ -25,7 +25,7 @@ from math import atan2
 
 
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import math
 
 from scipy.interpolate import interp1d
@@ -34,195 +34,199 @@ from scipy.interpolate import interp1d
 import bisect
 import scipy.linalg as la
 
-class Spline:
-    """
-    Cubic Spline class
-    """
+from controller.controller import man
 
-    def __init__(self, x, y):
-        self.b, self.c, self.d, self.w = [], [], [], []
+# class Spline:
+#     """
+#     Cubic Spline class
+#     """
 
-        self.x = x
-        self.y = y
+#     def __init__(self, x, y):
+#         self.b, self.c, self.d, self.w = [], [], [], []
 
-        self.nx = len(x)  # dimension of x
-        h = np.diff(x)
+#         self.x = x
+#         self.y = y
 
-        # calc coefficient c
-        self.a = [iy for iy in y]
+#         self.nx = len(x)  # dimension of x
+#         h = np.diff(x)
 
-        # calc coefficient c
-        A = self.__calc_A(h)
-        B = self.__calc_B(h)
-        self.c = np.linalg.solve(A, B)
-        #  print(self.c1)
+#         # calc coefficient c
+#         self.a = [iy for iy in y]
 
-        # calc spline coefficient b and d
-        for i in range(self.nx - 1):
-            self.d.append((self.c[i + 1] - self.c[i]) / (3.0 * h[i]))
-            tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] * \
-                (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
-            self.b.append(tb)
+#         # calc coefficient c
+#         A = self.__calc_A(h)
+#         B = self.__calc_B(h)
+#         self.c = np.linalg.solve(A, B)
+#         #  print(self.c1)
 
-    def calc(self, t):
-        """
-        Calc position
-        if t is outside of the input x, return None
-        """
+#         # calc spline coefficient b and d
+#         for i in range(self.nx - 1):
+#             self.d.append((self.c[i + 1] - self.c[i]) / (3.0 * h[i]))
+#             tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] * \
+#                 (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
+#             self.b.append(tb)
 
-        if t < self.x[0]:
-            return None
-        elif t > self.x[-1]:
-            return None
+#     def calc(self, t):
+#         """
+#         Calc position
+#         if t is outside of the input x, return None
+#         """
 
-        i = self.__search_index(t)
-        dx = t - self.x[i]
-        result = self.a[i] + self.b[i] * dx + \
-            self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
+#         if t < self.x[0]:
+#             return None
+#         elif t > self.x[-1]:
+#             return None
 
-        return result
+#         i = self.__search_index(t)
+#         dx = t - self.x[i]
+#         result = self.a[i] + self.b[i] * dx + \
+#             self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
 
-    def calcd(self, t):
-        """
-        Calc first derivative
-        if t is outside of the input x, return None
-        """
+#         return result
 
-        if t < self.x[0]:
-            return None
-        elif t > self.x[-1]:
-            return None
+#     def calcd(self, t):
+#         """
+#         Calc first derivative
+#         if t is outside of the input x, return None
+#         """
 
-        i = self.__search_index(t)
-        dx = t - self.x[i]
-        result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
-        return result
+#         if t < self.x[0]:
+#             return None
+#         elif t > self.x[-1]:
+#             return Nonecontroller.main()
 
-    def calcdd(self, t):
-        """
-        Calc second derivative
-        """
+#         i = self.__search_index(t)
+#         dx = t - self.x[i]
+#         result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
+#         return result
 
-        if t < self.x[0]:
-            return None
-        elif t > self.x[-1]:
-            return None
+#     def calcdd(self, t):
+#         """
+#         Calc second derivative
+#         """
 
-        i = self.__search_index(t)
-        dx = t - self.x[i]
-        result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
-        return result
+#         if t < self.x[0]:
+#             return None
+#         elif t > self.x[-1]:
+#             return None
 
-    def __search_index(self, x):
-        """
-        search data segment index
-        """
-        return bisect.bisect(self.x, x) - 1
+#         i = self.__search_index(t)
+#         dx = t - self.x[i]
+#         result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
+#         return result
 
-    def __calc_A(self, h):
-        """
-        calc matrix A for spline coefficient c
-        """
-        A = np.zeros((self.nx, self.nx))
-        A[0, 0] = 1.0
-        for i in range(self.nx - 1):
-            if i != (self.nx - 2):
-                A[i + 1, i + 1] = 2.0 * (h[i] + h[i + 1])
-            A[i + 1, i] = h[i]
-            A[i, i + 1] = h[i]
+#     def __search_index(self, x):
+#         """
+#         search data segment index
+#         """
+#         return bisect.bisect(self.x, x) - 1
 
-        A[0, 1] = 0.0
-        A[self.nx - 1, self.nx - 2] = 0.0
-        A[self.nx - 1, self.nx - 1] = 1.0
-        #  print(A)
-        return A
+#     def __calc_A(self, h):
+#         """
+#         calc matrix A for spline coefficient c
+#         """
+#         A = np.zeros((self.nx, self.nx))
+#         A[0, 0] = 1.0
+#         for i in range(self.nx - 1):
+#             if i != (self.nx - 2):
+#                 A[i + 1, i + 1] = 2.0 * (h[i] + h[i + 1])
+#             A[i + 1, i] = h[i]
+#             A[i, i + 1] = h[i]
 
-    def __calc_B(self, h):
-        """
-        calc matrix B for spline coefficient c
-        """
-        B = np.zeros(self.nx)
-        for i in range(self.nx - 2):
-            B[i + 1] = 3.0 * (self.a[i + 2] - self.a[i + 1]) / \
-                h[i + 1] - 3.0 * (self.a[i + 1] - self.a[i]) / h[i]
-        return B
+#         A[0, 1] = 0.0
+#         A[self.nx - 1, self.nx - 2] = 0.0
+#         A[self.nx - 1, self.nx - 1] = 1.0
+#         #  print(A)
+#         return A
 
-class Spline2D:
-    """
-    2D Cubic Spline class
-    """
+#     def __calc_B(self, h):
+#         """
+#         calc matrix B for spline coefficient c
+#         """
+#         B = np.zeros(self.nx)
+#         for i in range(self.nx - 2):
+#             B[i + 1] = 3.0 * (self.a[i + 2] - self.a[i + 1]) / \
+#                 h[i + 1] - 3.0 * (self.a[i + 1] - self.a[i]) / h[i]
+#         return B
 
-    def __init__(self, x, y):
-        self.s = self.__calc_s(x, y)
-        print("inside spline2d")
+# class Spline2D:
+#     """
+#     2D Cubic Spline class
+#     """
+
+#     def __init__(self, x, y):
+#         self.s = self.__calc_s(x, y)
+#         print("inside spline2d")
         
-        self.sx = Spline(self.s, x)
-        self.sy = Spline(self.s, y)
+#         self.sx = Spline(self.s, x)
+#         self.sy = Spline(self.s, y)
 
-    def __calc_s(self, x, y):
-        print(np.diff(x))
-        print(np.diff(y))
-        dx = np.diff(x)
-        dy = np.diff(y)
-        print("z00")
-        print(dx)
-        print(dy)
-        square_dx = dx**2
-        square_dy = dy**2
-        self.ds = np.hypot(dx, dy)
-        print(np.hypot(dx, dy))
-        #self.ds = np.hypot(dx, dy)
-        print("z")
-        s = [0]
-        print("z0")
-        s.extend(np.cumsum(self.ds))
-        return s
+#     def __calc_s(self, x, y):
+#         print(np.diff(x))
+#         print(np.diff(y))
+#         dx = np.diff(x)
+#         dy = np.diff(y)
+#         print("z00")
+#         print(dx)
+#         print(dy)
+#         square_dx = dx**2
+#         square_dy = dy**2
+#         self.ds = np.hypot(dx, dy)
+#         print(np.hypot(dx, dy))
+#         #self.ds = np.hypot(dx, dy)
+#         print("z")
+#         s = [0]
+#         print("z0")
+#         s.extend(np.cumsum(self.ds))
+#         return s
 
-    def calc_position(self, s):
-        """np.hypot(dx, dy))
-        calc position
-        """
-        x = self.sx.calc(s)
-        y = self.sy.calc(s)
+#     def calc_position(self, s):
+#         """np.hypot(dx, dy))
+#         calc position
+#         """
+#         x = self.sx.calc(s)
+#         y = self.sy.calc(s)
 
-        return x, y
+#         return x, y
 
-    def calc_curvature(self, s):
-        """
-        calc curvature
-        """
-        dx = self.sx.calcd(s)
-        ddx = self.sx.calcdd(s)
-        dy = self.sy.calcd(s)
-        ddy = self.sy.calcdd(s)
-        k = (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2)**(3 / 2))
-        return k
+#     def calc_curvature(self, s):
+#         """
+#         calc curvature
+#         """
+#         dx = self.sx.calcd(s)
+#         ddx = self.sx.calcdd(s)
+#         dy = self.sy.calcd(s)
+#         ddy = self.sy.calcdd(s)
+#         k = (ddy * dx - ddx * dy) / ((dx ** 2 + dy ** 2)**(3 / 2))
+#         return k
 
-    def calc_yaw(self, s):
-        """
-        calc yaw
-        """
-        dx = self.sx.calcd(s)
-        dy = self.sy.calcd(s)
-        yaw = math.atan2(dy, dx)
-        return yaw
+#     def calc_yaw(self, s):
+#         """
+#         calc yaw
+#         """
+#         dx = self.sx.calcd(s)
+#         dy = self.sy.calcd(s)
+#         yaw = math.atan2(dy, dx)
+#         return yaw
 
 
-def calc_spline_course(x, y, ds=0.1):
-    print("init calc spline course")
-    sp = Spline2D(x, y)
-    print("aft spline 2d)")
-    s = list(np.arange(0, sp.s[-1], ds))
-    print("aft s")
-    rx, ry, ryaw, rk = [], [], [], []
-    for i_s in s:
-        ix, iy = sp.calc_position(i_s)
-        rx.append(ix)
-        ry.append(iy)
-        ryaw.append(sp.calc_yaw(i_s))
-        rk.append(sp.calc_curvature(i_s))
+# def calc_spline_course(x, y, ds=0.1):
+#     print("init calc spline course")
+#     sp = Spline2D(x, y)
+#     print("aft spline 2d)")
+#     s = list(np.arange(0, sp.s[-1], ds))
+#     print("aft s")
+#     rx, ry, ryaw, rk = [], [], [], []
+#     for i_s in s:
+#         ix, iy = sp.calc_position(i_s)
+#         rx.append(ix)
+#         ry.append(iy)
+#         print("in calc spline course djsklfjsdklfj asdklfjsdkl;fj asdl;fkmasdl;f e")
+#         ryaw.append(sp.calc_yaw(i_s))
+#         print("fjksdlafjdklsfjdklfjsdklfjdsklfjdsklafjdklafjzsdkl")
+#         rk.append(sp.calc_curvature(i_s))
 
-    return rx, ry, ryaw, rk, s
+#     return rx, ry, ryaw, rk, s
 
 
 
@@ -232,7 +236,7 @@ class NavigationWaypoints():
         self.y = 0
         self.theta = 0
         self.ck = 0
-        self.yaw = 0
+       # self.yaw = 0
         # initiliaze
         rospy.init_node('Navigation_Waypoints', anonymous=False)
 
@@ -255,26 +259,27 @@ class NavigationWaypoints():
     #TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ
         r = rospy.Rate(10);
         move_cmd = Twist()
-        x_arr, y_arr = self.read_input()
-        print("aaaa")
-
+        #x_temp, y_temp = self.read_input()
+        #print("aaaa")
+        #x_arr, y_arr, cyaw, self.ck, s = calc_spline_course(x_temp, y_temp, ds = 0.1) 
         
 
-        goalie = [x_arr[-1], y_arr[-1]]    
-        print("a")
-        target_speed = 10.0 /13.6  # simulation parameter km/h -> m/s
-        print(self.yaw)
+        #goalie = [x_arr[-1], y_arr[-1]]    
+        #print("a")
+        #target_speed = 10.0 /13.6  # simulation parameter km/h -> m/s
+       # print(self.yaw)
         
         
 
-        i=1
+        #i=1
 
         while not rospy.is_shutdown():
-            sp = calc_speed_profile(x_arr, y_arr, self.yaw, target_speed)
+            #sp = calc_speed_profile(x_arr, y_arr, cyaw, target_speed)
 
         # t, x, y, yaw, v = do_simulation(x_i, y_i, yaw, k, sp, goal)
             #print('poit')
-            t, x, y, yaw, v = closed_loop_prediction(x_arr, y_arr, self.yaw, self.ck, sp, goalie)
+            #t, x, y, yaw, v = closed_loop_prediction(x_arr, y_arr, cyaw, self.ck, sp, goalie)
+
             #print('noit')
             # print("b")
             # goal = Point()
@@ -318,17 +323,20 @@ class NavigationWaypoints():
 
             #print("afterwatrds---------------------------------------------------------")
             #self.cmd_vel.publish(move_cmd)
-            print(move_cmd.linear.x)
-            print(move_cmd.angular.z)
+            #print(move_cmd.linear.x)
+            #print(move_cmd.angular.z)
 
             #rospy.sleep(0.1) 
             print("inside4")   
 
+            v, yaw = man()
+            print('just kidding')
             for i in range(len(v)):
-                # print(i)
+                print(i)
 
                 move_cmd.linear.x = v[i]
                 move_cmd.angular.z = yaw[i] 
+                print("============================================================================")
                 print(move_cmd.linear.x)
                 print(move_cmd.angular.z)
 
@@ -378,7 +386,7 @@ class NavigationWaypoints():
             arr_x = result[::3]
             arr_y = result[1::3]
             arr_z = result[2::3]
-            print('yeetttt')
+            #print('yeetttt')
             print(result) 
             print('\n')
             print(arr_x)
@@ -393,17 +401,17 @@ class NavigationWaypoints():
         arr_x = np.array(arr_x)
         arr_y = np.array(arr_y)
         
-        print("got here")
-        print(arr_x - diff_x)
-        print(arr_y - diff_y)
-        x_i, y_i, self.yaw, self.ck, s = calc_spline_course(arr_x - diff_x, arr_y - diff_y) 
-        print("post")   
+        #print("got here")
+        #print(arr_x - diff_x)
+        #print(arr_y - diff_y)
+        #x_i, y_i, cyaw, self.ck, s = calc_spline_course(arr_x - diff_x, arr_y - diff_y, ds = 0.1) 
+        #print("post")   
 
         print(x_i)
         print(y_i)
 
 
-        return x_i, y_i
+        return arr_x-diff_x, arr_y-diff_y
 
 
 
@@ -429,160 +437,161 @@ class NavigationWaypoints():
 
     # show_animation = True
 
-Kp = 1.0  # speed proportional gain
+# Kp = 1.0  # speed proportional gain
 
-Q = np.eye(4)
-R = np.eye(1)
-dt = 0.1  # time tick[s]
-L = 0.5  # Wheel base of the vehicle [m]
-max_steer = np.deg2rad(90.0)  # maximum steering angle[rad]
+# Q = np.eye(4)
+# R = np.eye(1)
+# dt = 0.1  # time tick[s]
+# L = 0.5  # Wheel base of the vehicle [m]
+# max_steer = np.deg2rad(90.0)  # maximum steering angle[rad]
 
-class State:
+# class State:
 
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
-        self.x = x
-        self.y = y
-        self.yaw = yaw
-        self.v = v
-
-
-def update(state, a, delta):
-
-    if delta >= max_steer:
-        delta = max_steer
-    if delta <= - max_steer:
-        delta = - max_steer
-
-    state.x = state.x + state.v * math.cos(state.yaw) * dt
-    state.y = state.y + state.v * math.sin(state.yaw) * dt
-    state.yaw = state.yaw + state.v / L * math.tan(delta) * dt
-    state.v = state.v + a * dt
-
-    return state
+#     def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0):
+#         self.x = x
+#         self.y = y
+#         self.yaw = yaw
+#         self.v = v
 
 
-def pi_2_pi(angle):
-    return (angle + math.pi) % (2 * math.pi) - math.pi
+# def update(state, a, delta):
 
-def PIDControl(target, current):
-    a = Kp * (target - current)
+#     if delta >= max_steer:
+#         delta = max_steer
+#     if delta <= - max_steer:
+#         delta = - max_steer
 
-    return a
+#     state.x = state.x + state.v * math.cos(state.yaw) * dt
+#     state.y = state.y + state.v * math.sin(state.yaw) * dt
+#     state.yaw = state.yaw + state.v / L * math.tan(delta) * dt
+#     state.v = state.v + a * dt
 
-def solve_DARE(A, B, Q, R):
-    """
-    solve a discrete time_Algebraic Riccati equation (DARE)
-    """
-    X = Q
-    max_iter = 150
-    eps = 0.01
-
-    for i in range(max_iter):
-        #x_next = A.T @ x @ A - A.T @ x @ B @ \
-        #la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
-        # temp2 = la.inv(R + B.T @ x @ B)
-        # temp = la.inv(R + np.matmul(B, np.matmul(B.T,x)))
+#     return state
 
 
-        at_x = np.matmul(A.T, X)
-        bt_x = np.matmul(B.T, X)
-        at_x_b = np.matmul(at_x, B)
-        bt_x_a = np.matmul(bt_x, A)
-        inv_arg = R + np.matmul(bt_x, B)
-        la.inv(inv_arg)
+# def pi_2_pi(angle):
+#     return (angle + math.pi) % (2 * math.pi) - math.pi
 
-        Xn = np.matmul(at_x, A) - np.matmul(at_x_b, np.matmul(la.inv(inv_arg), bt_x_a)) + Q
+# def PIDControl(target, current):
+#     a = Kp * (target - current)
 
-        # x_next = A.T @ x @ A - A.T @ x @ B @ \
-        #     la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
+#     return a
 
-        # x_next = np.matmul(np.matmul(A.T,x), A) - np.matmul(A,np.matmul(x, np.matmul(B.T, np.matmul(temp, np.matmul(B, np.matmul(A.T, x)))))) + Q
-        if (abs(Xn - X)).max() < eps:
-            break
-        X = Xn
+# def solve_DARE(A, B, Q, R):
+#     """
+#     solve a discrete time_Algebraic Riccati equation (DARE)
+#     """
+#     X = Q
+#     max_iter = 150
+#     eps = 0.01
 
-    return Xn
-
-def dlqr(A, B, Q, R):
-    print('show me a magic trick')
-    """Solve the discrete time lqr controller.
-    x[k+1] = A x[k] + B u[k]
-    cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
-    # ref Bertsekas, p.151
-    """
-
-    # first, try to solve the ricatti equation
-    print('i dare u')
-    X = solve_DARE(A, B, Q, R)
-    print('oops i wanted truth')
-
-    # compute the LQR gain
-    bt_x = np.matmul(B.T, X)
-    bt_x_b = np.matmul(bt_x, B)
-    bt_x_a = np.matmul(bt_x, A)
-    K = np.matmul(la.inv(bt_x_b + R), bt_x_a)
-
-    eigVals = la.eig(A - np.matmul(B,K))
-
-    return K, X, eigVals
+#     for i in range(max_iter):
+#         #x_next = A.T @ x @ A - A.T @ x @ B @ \
+#         #la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
+#         # temp2 = la.inv(R + B.T @ x @ B)
+#         # temp = la.inv(R + np.matmul(B, np.matmul(B.T,x)))
 
 
-def lqr_steering_control(state, cx, cy, cyaw, ck, pe, pth_e):
-    ind, e = calc_nearest_index(state, cx, cy, cyaw)
+#         at_x = np.matmul(A.T, X)
+#         bt_x = np.matmul(B.T, X)
+#         at_x_b = np.matmul(at_x, B)
+#         bt_x_a = np.matmul(bt_x, A)
+#         inv_arg = R + np.matmul(bt_x, B)
+#         la.inv(inv_arg)
 
-    k = ck[ind]
-    v = state.v
-    th_e = pi_2_pi(state.yaw - cyaw[ind])
+#         Xn = np.matmul(at_x, A) - np.matmul(at_x_b, np.matmul(la.inv(inv_arg), bt_x_a)) + Q
 
-    A = np.zeros((4, 4))
-    A[0, 0] = 1.0
-    A[0, 1] = dt
-    A[1, 2] = v
-    A[2, 2] = 1.0
-    A[2, 3] = dt
-    # print(A)
-    print('key')
-    B = np.zeros((4, 1))
-    B[3, 0] = v / L
-    print('wat is dlqr')
-    K, blah, blah2 = dlqr(A, B, Q, R)
-    print('now i know dlqr')
+#         # x_next = A.T @ x @ A - A.T @ x @ B @ \
+#         #     la.inv(R + B.T @ x @ B) @ B.T @ x @ A + Q
 
-    x = np.zeros((4, 1))
+#         # x_next = np.matmul(np.matmul(A.T,x), A) - np.matmul(A,np.matmul(x, np.matmul(B.T, np.matmul(temp, np.matmul(B, np.matmul(A.T, x)))))) + Q
+#         if (abs(Xn - X)).max() < eps:
+#             break
+#         X = Xn
 
-    x[0, 0] = e
-    x[1, 0] = (e - pe) / dt
-    x[2, 0] = th_e
-    x[3, 0] = (th_e - pth_e) / dt
+#     return Xn
 
-    ff = math.atan2(L * k, 1)
-    fb = pi_2_pi((np.matmul(-K,x))[0, 0])
-    print('peele')
+# def dlqr(A, B, Q, R):
+#     #print('show me a magic trick')
+#     """Solve the discrete time lqr controller.
+#     x[k+1] = A x[k] + B u[k]
+#     cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
+#     # ref Bertsekas, p.151
+#     """
 
-    delta = ff + fb
+#     # first, try to solve the ricatti equation
+#     #print('i dare u')
+#     X = solve_DARE(A, B, Q, R)
+#     #print('oops i wanted truth')
 
-    return delta, ind, e, th_e
+#     # compute the LQR gain
+#     bt_x = np.matmul(B.T, X)
+#     bt_x_b = np.matmul(bt_x, B)
+#     bt_x_a = np.matmul(bt_x, A)
+#     K = np.matmul(la.inv(bt_x_b + R), bt_x_a)
+
+#     eigVals = la.eig(A - np.matmul(B,K))
+
+#     return K, X, eigVals
 
 
-def calc_nearest_index(state, cx, cy, cyaw):
-    dx = [state.x - icx for icx in cx]
-    dy = [state.y - icy for icy in cy]
+# def lqr_steering_control(state, cx, cy, cyaw, ck, pe, pth_e):
+#     ind, e = calc_nearest_index(state, cx, cy, cyaw)
 
-    d = [idx ** 2 + idy ** 2 for (idx, idy) in zip(dx, dy)]
+#     k = ck[ind]
+#     v = state.v
+#     th_e = pi_2_pi(state.yaw - cyaw[ind])
 
-    mind = min(d)
+#     A = np.zeros((4, 4))
+#     A[0, 0] = 1.0
+#     A[0, 1] = dt
+#     A[1, 2] = v
+#     A[2, 2] = 1.0
+#     A[2, 3] = dt
+#     # print(A)
+#     #print('key')
+#     B = np.zeros((4, 1))
+#     B[3, 0] = v / L
+#     #print('wat is dlqr')
+#     K, blah, blah2 = dlqr(A, B, Q, R)
+#     #print('now i know dlqr')
 
-    ind = d.index(mind)
+#     x = np.zeros((4, 1))
 
-    mind = math.sqrt(mind)
-    dxl = cx[ind] - state.x
-    dyl = cy[ind] - state.y
+#     x[0, 0] = e
+#     x[1, 0] = (e - pe) / dt
+#     x[2, 0] = th_e
+#     x[3, 0] = (th_e - pth_e) / dt
 
-    angle = pi_2_pi(cyaw[ind] - math.atan2(dyl, dxl))
-    if angle < 0:
-        mind *= -1
+#     ff = math.atan2(L * k, 1)
+#     fb = pi_2_pi((np.matmul(-K,x))[0, 0])
+#     #print('peele')
 
-    return ind, mind
+#     delta = ff + fb
+
+#     return delta, ind, e, th_e
+
+
+# def calc_nearest_index(state, cx, cy, cyaw):
+#     dx = [state.x - icx for icx in cx]
+#     dy = [state.y - icy for icy in cy]
+
+#     d = [idx ** 2 + idy ** 2 for (idx, idy) in zip(dx, dy)]
+
+#     mind = min(d)
+
+#     ind = d.index(mind)
+
+#     mind = math.sqrt(mind)
+
+#     dxl = cx[ind] - state.x
+#     dyl = cy[ind] - state.y
+
+#     angle = pi_2_pi(cyaw[ind] - math.atan2(dyl, dxl))
+#     if angle < 0:
+#         mind *= -1
+
+#     return ind, mind
 
 # def do_simulation(cx, cy, cyaw, ck, speed_profile, goal):
 #     T = 500.0  # max simulation time
@@ -637,76 +646,78 @@ def calc_nearest_index(state, cx, cy, cyaw):
 #         t.append(time)
 #     return t, x, y, yaw, v
 
-def closed_loop_prediction(cx, cy, cyaw, ck, speed_profile, goal):
-    T = 15.0  # max simulation time
-    goal_dis = 0.3
-    stop_speed = 0.005
+# def closed_loop_prediction(cx, cy, cyaw, ck, speed_profile, goal):
+#     T = 500.0  # max simulation time
+#     goal_dis = 0.3
+#     stop_speed = 0.005
 
-    state = State(x=-0.0, y=-0.0, yaw=0.0, v=0.0)
-    print('noice')
-    time = 0.0
-    x = [state.x]
-    y = [state.y]
-    yaw = [state.yaw]
-    v = [state.v]
-    t = [0.0]
+#     state = State(x=-0.0, y=-0.0, yaw=0.0, v=0.0)
+#     print("mickey - state.yaw")
+#     print(state.yaw)
+#     #print('noice')
+#     time = 0.0
+#     x = [state.x]
+#     y = [state.y]
+#     yaw = [state.yaw]
+#     v = [state.v]
+#     t = [0.0]
 
-    e, e_th = 0.0, 0.0
-    print('noiceee')
-    while T >= time:
-        print('white ice')
-        dl, target_ind, e, e_th = lqr_steering_control(
-            state, cx, cy, cyaw, ck, e, e_th)
-        print('black ice')
-        ai = PIDControl(speed_profile[target_ind], state.v)
-        state = update(state, ai, dl)
-        print('aaron balake')
-        if abs(state.v) <= stop_speed:
-            target_ind += 1
+#     e, e_th = 0.0, 0.0
+#     #print('noiceee')
+#     while T >= time:
+#         #print('white ice')
+#         dl, target_ind, e, e_th = lqr_steering_control(
+#             state, cx, cy, cyaw, ck, e, e_th)
+#         #print('black ice')
+#         ai = PIDControl(speed_profile[target_ind], state.v)
+#         state = update(state, ai, dl)
+#         #print('aaron balake')
+#         if abs(state.v) <= stop_speed:
+#             target_ind += 1
 
-        time = time + dt
-        print('stop copying me bro')
+#         time = time + dt
+#         #print('stop copying me bro')
 
-        # check goal
-        dx = state.x - goal[0]
-        dy = state.y - goal[1]
-        if math.hypot(dx, dy) <= goal_dis:
-            print("Goal")
-            break
-        print(' i said bbbbbb')
+#         # check goal
+#         dx = state.x - goal[0]
+#         dy = state.y - goal[1]
+#         if math.hypot(dx, dy) <= goal_dis:
+#             #print("Goal")
+#             break
+#         print(' i said bbbbbb')
+#         print(state.yaw)
+#         x.append(state.x)
+#         y.append(state.y)
+#         yaw.append(state.yaw)
+#         v.append(state.v)
+#         t.append(time)
 
-        x.append(state.x)
-        y.append(state.y)
-        yaw.append(state.yaw)
-        v.append(state.v)
-        t.append(time)
+#     return t, x, y, yaw, v
 
-    return t, x, y, yaw, v
+# def calc_speed_profile(cx, cy, cyaw, target_speed):
+#     speed_profile = [target_speed] * len(cx)
 
-def calc_speed_profile(cx, cy, cyaw, target_speed):
-    speed_profile = [target_speed] * len(cx)
+#     direction = 1.0
 
-    direction = 1.0
+#     # Set stop point
+#     for i in range(len(cx) - 1):
+#         dyaw = abs(cyaw[i + 1] - cyaw[i])
+#         switch = math.pi / 4.0 <= dyaw < math.pi / 2.0
 
-    # Set stop point
-    for i in range(len(cx) - 1):
-        dyaw = abs(cyaw[i + 1] - cyaw[i])
-        switch = math.pi / 4.0 <= dyaw < math.pi / 2.0
+#         if switch:
+#             direction *= -1
 
-        if switch:
-            direction *= -1
+#         if direction != 1.0:
+#             speed_profile[i] = - target_speed
+#         else:
+#             speed_profile[i] = target_speed
 
-        if direction != 1.0:
-            speed_profile[i] = - target_speed
-        else:
-            speed_profile[i] = target_speed
+#         if switch:
+#             speed_profile[i] = 0.0
 
-        if switch:
-            speed_profile[i] = 0.0
+#     speed_profile[-1] = 0.0
 
-    speed_profile[-1] = 0.0
-
-    return speed_profile
+#     return speed_profile
 
  
 if __name__ == '__main__':
